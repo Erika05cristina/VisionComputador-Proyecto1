@@ -1,6 +1,4 @@
 build/
-ui/
 *.nii
 *.png
 *.avi
-*.txt
