@@ -1,33 +1,29 @@
 cmake_minimum_required(VERSION 3.15)
 project(proyecto-vision LANGUAGES C CXX)
 
+# Configuración del compilador
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Qt automoc y autorcc (pero desactivamos autouic porque no hay .ui)
+# Habilitar herramientas de Qt
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC OFF)  # <-- desactivado
+set(CMAKE_AUTOUIC ON)
 
-# Rutas personalizadas
-set(OpenCV_DIR "/home/visionups/aplicaciones/Librerias/opencv/opencvi/lib/cmake/opencv4")
-find_package(OpenCV REQUIRED)
+# Usar siempre variables de entorno para las rutas
+set(Qt5_DIR $ENV{Qt5_DIR})
+set(ITK_DIR $ENV{ITK_DIR})
+set(OpenCV_DIR $ENV{OpenCV_DIR})
 
-set(VTK_DIR "/usr/lib/x86_64-linux-gnu/cmake/vtk-9.1")
-find_package(VTK REQUIRED)
-
-set(ITK_DIR "/usr/lib/x86_64-linux-gnu/cmake/ITK-5.3")
-set(ITK_USE_VTK ON CACHE BOOL "Enable VTK support" FORCE)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(ITK REQUIRED)
 include(${ITK_USE_FILE})
+find_package(OpenCV REQUIRED)
 
-set(Qt5_DIR "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
-
-# Ejecutable sin el .ui
 add_executable(proyecto
     src/main.cpp
     src/funciones.hpp
+    src/funciones.cpp 
     ui/mainwindow.cpp
     ui/mainwindow.h
 )
@@ -38,9 +34,8 @@ target_link_libraries(proyecto PRIVATE
     Qt5::Core
     Qt5::Gui
     Qt5::Widgets
-    ${OpenCV_LIBS}
-    ${VTK_LIBRARIES}
     ${ITK_LIBRARIES}
+    ${OpenCV_LIBS}
 )
 
 include(GNUInstallDirs)

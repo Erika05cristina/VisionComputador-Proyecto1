@@ -78,16 +78,10 @@
 // }
 #include <QApplication>
 #include "../ui/mainwindow.h"
-#include <itkImage.h>
-#include <opencv2/opencv.hpp>
 
 int main(int argc, char *argv[]) {
-    // Crear la aplicación Qt
     QApplication app(argc, argv);
-
-    // Crear y mostrar la ventana principal
     MainWindow mainWindow;
     mainWindow.show();
-
     return app.exec();
 }

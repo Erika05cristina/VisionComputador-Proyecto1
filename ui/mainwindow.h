@@ -1,8 +1,7 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
-
+// mainwindow.h
+#include <QLabel>
 #include <QMainWindow>
-#include <QPushButton>
+#include <opencv2/opencv.hpp>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -13,9 +12,12 @@ public:
 
 private slots:
     void procesarArchivos();
+    void generarVideo();
 
 private:
-    QPushButton* processButton;
-};
+    QLabel* originalLabel;
+    QLabel* equalizedLabel;
+    QLabel* resaltadaLabel;
 
-#endif // MAINWINDOW_H
+    void mostrarEnLabel(const cv::Mat& imagen, QLabel* label);
+};

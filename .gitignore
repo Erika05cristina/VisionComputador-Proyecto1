@@ -1,4 +1,10 @@
 build/
+stats/
+.vscode/
+
+build.sh
+
 *.nii
 *.png
 *.avi
+
