@@ -8,7 +8,8 @@
                 "/usr/include/x86_64-linux-gnu/qt5/QtCore",
                 "/usr/include/x86_64-linux-gnu/qt5/QtGui",
                 "/usr/include/x86_64-linux-gnu/qt5/QtWidgets",
-                "/usr/include/opencv4"
+                "/home/visionups/aplicaciones/Librerias/opencv/opencvi/include/opencv4",
+                "/usr/include/ITK-5.3"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",
