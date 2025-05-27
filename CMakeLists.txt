@@ -1,49 +1,48 @@
-cmake_minimum_required(VERSION 3.10)
-project(ProyectoIntegrador LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.15)
+project(proyecto-vision LANGUAGES C CXX)
 
-# Configuración del compilador
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Encontrar Qt5
-set(Qt5_DIR "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
+# Qt automoc y autorcc (pero desactivamos autouic porque no hay .ui)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC OFF)  # <-- desactivado
 
-# Configuración de ITK
-set(ITK_DIR "/home/cristina/aplicaciones/itk_instalado/lib/cmake/ITK-6.0")
+# Rutas personalizadas
+set(OpenCV_DIR "/home/visionups/aplicaciones/Librerias/opencv/opencvi/lib/cmake/opencv4")
+find_package(OpenCV REQUIRED)
+
+set(VTK_DIR "/usr/lib/x86_64-linux-gnu/cmake/vtk-9.1")
+find_package(VTK REQUIRED)
+
+set(ITK_DIR "/usr/lib/x86_64-linux-gnu/cmake/ITK-5.3")
+set(ITK_USE_VTK ON CACHE BOOL "Enable VTK support" FORCE)
 find_package(ITK REQUIRED)
 include(${ITK_USE_FILE})
 
-# Configuración de OpenCV
-find_package(OpenCV REQUIRED)
+set(Qt5_DIR "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 
-# Agregar el código fuente principal
+# Ejecutable sin el .ui
 add_executable(proyecto
     src/main.cpp
     src/funciones.hpp
     ui/mainwindow.cpp
     ui/mainwindow.h
-    ui/mainwindow.ui
 )
 
-# Habilitar herramientas de Qt5
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-
-# Incluir directorios de OpenCV
 target_include_directories(proyecto PRIVATE ${OpenCV_INCLUDE_DIRS})
 
-# Enlazar bibliotecas de Qt5, ITK y OpenCV
 target_link_libraries(proyecto PRIVATE
     Qt5::Core
     Qt5::Gui
     Qt5::Widgets
-    ${ITK_LIBRARIES}
     ${OpenCV_LIBS}
+    ${VTK_LIBRARIES}
+    ${ITK_LIBRARIES}
 )
 
-# Instalar el ejecutable
 include(GNUInstallDirs)
 install(TARGETS proyecto
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

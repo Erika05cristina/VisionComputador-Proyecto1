@@ -77,7 +77,7 @@
 //     return EXIT_SUCCESS;
 // }
 #include <QApplication>
-#include "mainwindow.h"
+#include "../ui/mainwindow.h"
 #include <itkImage.h>
 #include <opencv2/opencv.hpp>
 
