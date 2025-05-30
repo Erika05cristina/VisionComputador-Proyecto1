@@ -83,12 +83,28 @@ void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo)
 }
 
 cv::Mat resaltarArea(const cv::Mat& slice) {
-    cv::Mat binarizada, contornos;
-    cv::threshold(slice, binarizada, 100, 255, cv::THRESH_BINARY);
+    cv::Mat suavizada, binarizada, morfologica, contornos;
+
+    // 1. Suavizar para eliminar ruido
+    cv::GaussianBlur(slice, suavizada, cv::Size(5, 5), 1.5);
+
+    // 2. Umbral automático con Otsu
+    cv::threshold(suavizada, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+
+    // 3. Operaciones morfológicas para limpiar regiones pequeñas y cerrar bordes
+    cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);  // Elimina ruido
+    cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2); // Rellena huecos
+
+    // 4. Convertir la imagen original a BGR para dibujar colores
     cv::cvtColor(slice, contornos, cv::COLOR_GRAY2BGR);
+
+    // 5. Detección de contornos
     std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(binarizada, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    // 6. Dibujar contornos (en rojo)
     cv::drawContours(contornos, contours, -1, cv::Scalar(0, 0, 255), 2);
+
     return contornos;
 }
 
