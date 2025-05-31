@@ -55,11 +55,8 @@ void MainWindow::cargarImagenYMascara() {
     if (mascaraPath.isEmpty()) return;
 
     using ImageType = itk::Image<short, 3>;
-    using MaskType = itk::Image<short, 3>;  // Asumimos que la máscara también es de tipo short
     using ReaderType = itk::ImageFileReader<ImageType>;
-    using MaskReaderType = itk::ImageFileReader<MaskType>;
     using ExtractFilterType = itk::ExtractImageFilter<ImageType, itk::Image<short, 2>>;
-    using MaskExtractFilterType = itk::ExtractImageFilter<MaskType, itk::Image<short, 2>>;
 
     ReaderType::Pointer imagenReader = ReaderType::New();
     ReaderType::Pointer mascaraReader = ReaderType::New();
@@ -137,14 +134,31 @@ void MainWindow::mostrarSlice(int indice) {
         mostrarEnLabel(original, originalLabel);
         mostrarEnLabel(mask, maskLabel);
 
-        cv::Mat contornos;
-        cv::cvtColor(original, contornos, cv::COLOR_GRAY2BGR);
+        cv::Mat resaltada;
+        cv::cvtColor(original, resaltada, cv::COLOR_GRAY2BGR);
 
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        cv::drawContours(contornos, contours, -1, cv::Scalar(0, 0, 255), 2);
 
-        mostrarEnLabel(contornos, resaltadaLabel);
+        cv::Mat filledMask = cv::Mat::zeros(mask.size(), CV_8UC1);
+        cv::drawContours(filledMask, contours, -1, 255, -1);
+
+        cv::Mat borderMask = cv::Mat::zeros(mask.size(), CV_8UC1);
+        cv::drawContours(borderMask, contours, -1, 255, 2);
+
+        for (int y = 0; y < resaltada.rows; ++y) {
+            for (int x = 0; x < resaltada.cols; ++x) {
+                if (filledMask.at<uchar>(y, x) || borderMask.at<uchar>(y, x)) {
+                    cv::Vec3b& pixel = resaltada.at<cv::Vec3b>(y, x);
+                    cv::Vec3f original(pixel[0], pixel[1], pixel[2]);
+                    cv::Vec3f redOverlay(0, 0, 255);
+                    cv::Vec3f blended = 0.6f * original + 0.4f * redOverlay;
+                    pixel = cv::Vec3b(blended[0], blended[1], blended[2]);
+                }
+            }
+        }
+
+        mostrarEnLabel(resaltada, resaltadaLabel);
     }
 }
 
@@ -175,10 +189,8 @@ void MainWindow::mostrarEnLabel(const cv::Mat& imagen, QLabel* label) {
     if (imagen.channels() == 1) {
         cv::cvtColor(imagen, imagenRGB, cv::COLOR_GRAY2RGB);
     } else {
-        imagenRGB = imagen.clone();
+        cv::cvtColor(imagen, imagenRGB, cv::COLOR_BGR2RGB);
     }
-
-    
 
     QImage qimg(imagenRGB.data, imagenRGB.cols, imagenRGB.rows, imagenRGB.step, QImage::Format_RGB888);
     label->setPixmap(QPixmap::fromImage(qimg).scaled(256, 256, Qt::KeepAspectRatio));
