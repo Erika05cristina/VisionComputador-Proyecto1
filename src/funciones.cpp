@@ -83,14 +83,21 @@ void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo)
 }
 
 cv::Mat resaltarArea(const cv::Mat& slice) {
-    cv::Mat suavizada, binarizada, morfologica, resultado;
+    cv::Mat ecualizada, suavizada, binarizada, morfologica, resultado;
 
-    cv::GaussianBlur(slice, suavizada, cv::Size(5, 5), 1.5);
+    // Ecualización de histograma
+    cv::equalizeHist(slice, ecualizada);
+
+    // Suavizado
+    cv::GaussianBlur(ecualizada, suavizada, cv::Size(5, 5), 1.5);
+
+    // Umbralización + Morfología
     cv::threshold(suavizada, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
     cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
     cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
 
-    cv::cvtColor(slice, resultado, cv::COLOR_GRAY2BGR);
+    // Resultado a color
+    cv::cvtColor(ecualizada, resultado, cv::COLOR_GRAY2BGR);
 
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
@@ -112,9 +119,8 @@ cv::Mat resaltarArea(const cv::Mat& slice) {
                 for (int x = 0; x < resultado.cols; ++x) {
                     if (mask.at<uchar>(y, x)) {
                         cv::Vec3b& pixel = resultado.at<cv::Vec3b>(y, x);
-                        // Color rojo claro translúcido
-                        cv::Vec3b overlay = {150, 150, 255}; // BGR
-                        pixel = 0.4 * overlay + 0.6 * pixel;
+                        cv::Vec3b rojo = {0, 0, 255};
+                        pixel = 0.6 * pixel + 0.4 * rojo;
                     }
                 }
             }
