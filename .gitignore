@@ -7,4 +7,6 @@ build.sh
 *.nii
 *.png
 *.avi
-
+*.hdr
+*.img
+*.img.gz

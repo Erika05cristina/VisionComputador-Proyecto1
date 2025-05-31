@@ -12,17 +12,19 @@ public:
     ~MainWindow();
 
 private slots:
-    void cargarArchivoNii();
+    void cargarImagenYMascara();
     void mostrarSlice(int indice);
     void generarVideo();
 
 private:
     QLabel* originalLabel;
-    QLabel* equalizedLabel;
+    QLabel* maskLabel;           // <- NUEVO: para mostrar la máscara de segmentación
     QLabel* resaltadaLabel;
     QSlider* slider;
 
     std::vector<cv::Mat> slices;
+    std::vector<cv::Mat> maskSlices; // <- NUEVO: para guardar los slices de la máscara
+
     std::string currentFile;
 
     void mostrarEnLabel(const cv::Mat& imagen, QLabel* label);

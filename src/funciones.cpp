@@ -29,7 +29,7 @@ cv::Mat cargarSlice(const std::string& rutaArchivo, int indice) {
     try {
         reader->Update();
     } catch (...) {
-        return cv::Mat(); // Devolver vacía si hay error
+        return cv::Mat();
     }
 
     ImageType::RegionType region = reader->GetOutput()->GetLargestPossibleRegion();
@@ -76,36 +76,54 @@ void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo)
     } else if (tipo == "resaltada") {
         carpeta = "../output/processed/";
     } else {
-        carpeta = "../output/";  // fallback general
+        carpeta = "../output/";
     }
     std::string ruta = carpeta + "slice_" + std::to_string(indice) + "_" + tipo + ".png";
     cv::imwrite(ruta, imagen);
 }
 
 cv::Mat resaltarArea(const cv::Mat& slice) {
-    cv::Mat suavizada, binarizada, morfologica, contornos;
+    cv::Mat suavizada, binarizada, morfologica, resultado;
 
-    // 1. Suavizar para eliminar ruido
     cv::GaussianBlur(slice, suavizada, cv::Size(5, 5), 1.5);
-
-    // 2. Umbral automático con Otsu
     cv::threshold(suavizada, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
+    cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
 
-    // 3. Operaciones morfológicas para limpiar regiones pequeñas y cerrar bordes
-    cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);  // Elimina ruido
-    cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2); // Rellena huecos
+    cv::cvtColor(slice, resultado, cv::COLOR_GRAY2BGR);
 
-    // 4. Convertir la imagen original a BGR para dibujar colores
-    cv::cvtColor(slice, contornos, cv::COLOR_GRAY2BGR);
-
-    // 5. Detección de contornos
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    // 6. Dibujar contornos (en rojo)
-    cv::drawContours(contornos, contours, -1, cv::Scalar(0, 0, 255), 2);
+    for (const auto& contour : contours) {
+        double area = cv::contourArea(contour);
+        cv::Rect bbox = cv::boundingRect(contour);
 
-    return contornos;
+        bool areaValida = area > 300 && area < 5000;
+        bool alejadoDeBordes = bbox.x > 20 && bbox.y > 20 &&
+                               bbox.x + bbox.width < slice.cols - 20 &&
+                               bbox.y + bbox.height < slice.rows - 20;
+
+        if (areaValida && alejadoDeBordes) {
+            cv::Mat mask = cv::Mat::zeros(slice.size(), CV_8UC1);
+            cv::drawContours(mask, std::vector<std::vector<cv::Point>>{contour}, -1, 255, -1);
+
+            for (int y = 0; y < resultado.rows; ++y) {
+                for (int x = 0; x < resultado.cols; ++x) {
+                    if (mask.at<uchar>(y, x)) {
+                        cv::Vec3b& pixel = resultado.at<cv::Vec3b>(y, x);
+                        // Color rojo claro translúcido
+                        cv::Vec3b overlay = {150, 150, 255}; // BGR
+                        pixel = 0.4 * overlay + 0.6 * pixel;
+                    }
+                }
+            }
+
+            cv::drawContours(resultado, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(0, 0, 255), 2);
+        }
+    }
+
+    return resultado;
 }
 
 void guardarEstadisticas(const cv::Mat& slice, int indice) {
