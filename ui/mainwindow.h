@@ -1,6 +1,7 @@
 // mainwindow.h
 #include <QLabel>
 #include <QMainWindow>
+#include <QSlider>
 #include <opencv2/opencv.hpp>
 
 class MainWindow : public QMainWindow {
@@ -11,13 +12,18 @@ public:
     ~MainWindow();
 
 private slots:
-    void procesarArchivos();
+    void cargarArchivoNii();
+    void mostrarSlice(int indice);
     void generarVideo();
 
 private:
     QLabel* originalLabel;
     QLabel* equalizedLabel;
     QLabel* resaltadaLabel;
+    QSlider* slider;
+
+    std::vector<cv::Mat> slices;
+    std::string currentFile;
 
     void mostrarEnLabel(const cv::Mat& imagen, QLabel* label);
 };

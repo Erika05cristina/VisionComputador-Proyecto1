@@ -22,10 +22,8 @@ find_package(OpenCV REQUIRED)
 
 add_executable(proyecto
     src/main.cpp
-    src/funciones.hpp
     src/funciones.cpp 
     ui/mainwindow.cpp
-    ui/mainwindow.h
 )
 
 target_include_directories(proyecto PRIVATE ${OpenCV_INCLUDE_DIRS})
