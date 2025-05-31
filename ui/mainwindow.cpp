@@ -15,8 +15,10 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
 
+    resize(1000, 600);  // Aumentar el tamaño inicial de la ventana
+
     QWidget* centralWidget = new QWidget(this);
-    QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+    QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
 
     QPushButton* cargarButton = new QPushButton("Cargar imagen y máscara", this);
     QPushButton* videoButton = new QPushButton("Generar Video", this);
@@ -27,16 +29,23 @@ MainWindow::MainWindow(QWidget *parent)
     maskLabel = new QLabel("Máscara");
     resaltadaLabel = new QLabel("Bordes resaltados sobre imagen");
 
+    originalLabel->setFixedSize(320, 320);
+    maskLabel->setFixedSize(320, 320);
+    resaltadaLabel->setFixedSize(320, 320);
+
     originalLabel->setAlignment(Qt::AlignCenter);
     maskLabel->setAlignment(Qt::AlignCenter);
     resaltadaLabel->setAlignment(Qt::AlignCenter);
 
-    layout->addWidget(cargarButton);
-    layout->addWidget(videoButton);
-    layout->addWidget(slider);
-    layout->addWidget(originalLabel);
-    layout->addWidget(maskLabel);
-    layout->addWidget(resaltadaLabel);
+    QHBoxLayout* imageLayout = new QHBoxLayout();
+    imageLayout->addWidget(originalLabel);
+    imageLayout->addWidget(maskLabel);
+    imageLayout->addWidget(resaltadaLabel);
+
+    mainLayout->addWidget(cargarButton);
+    mainLayout->addWidget(videoButton);
+    mainLayout->addWidget(slider);
+    mainLayout->addLayout(imageLayout);
 
     setCentralWidget(centralWidget);
 
