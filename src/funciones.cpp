@@ -82,22 +82,25 @@ void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo)
     cv::imwrite(ruta, imagen);
 }
 
-cv::Mat resaltarArea(const cv::Mat& slice) {
-    cv::Mat ecualizada, suavizada, binarizada, morfologica, resultado;
 
-    // Ecualización de histograma
+cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat& mascaraProcesadaOut) {
+
+    cv::Mat ecualizada, suavizada;
     cv::equalizeHist(slice, ecualizada);
-
-    // Suavizado
     cv::GaussianBlur(ecualizada, suavizada, cv::Size(5, 5), 1.5);
 
-    // Umbralización + Morfología
-    cv::threshold(suavizada, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    // Procesar la máscara: binarización + morfología
+    cv::Mat binarizada, morfologica;
+    cv::threshold(maskOriginal, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
     cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
     cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
 
-    // Resultado a color
-    cv::cvtColor(ecualizada, resultado, cv::COLOR_GRAY2BGR);
+    // Salida opcional de la máscara procesada
+    mascaraProcesadaOut = morfologica.clone();
+
+    // Convertir la imagen a color
+    cv::Mat resultado;
+    cv::cvtColor(suavizada, resultado, cv::COLOR_GRAY2BGR);
 
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);

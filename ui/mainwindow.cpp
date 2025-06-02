@@ -171,22 +171,21 @@ void MainWindow::mostrarSlice(int indice) {
         cv::Mat original = slices[indice];
         cv::Mat mask = maskSlices[indice];
 
-        // Mostrar originales
+        // Mostrar imágenes originales
         mostrarEnLabel(original, originalLabel);
         mostrarEnLabel(mask, maskLabel);
 
-        // Procesar la máscara y mostrar
-        cv::Mat binarizada, morfologica;
-        cv::threshold(mask, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-        cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
-        cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
-        mostrarEnLabel(morfologica, procesadaLabel);
+        // Declarar salida para la máscara procesada
+        cv::Mat morfologica;
 
-        // Usar la función resaltarArea
-        cv::Mat resaltada = resaltarArea(original);
+        // Usar la función actualizada que procesa la máscara y resalta
+        cv::Mat resaltada = resaltarArea(original, mask, morfologica);
+
+        // Mostrar la máscara procesada y la imagen resaltada
+        mostrarEnLabel(morfologica, procesadaLabel);
         mostrarEnLabel(resaltada, resaltadaLabel);
 
-        // Actualizar texto del índice
+        // Actualizar etiqueta de índice
         sliceInfoLabel->setText(QString("Slice actual: %1 / %2")
                                 .arg(indice)
                                 .arg(slices.size() - 1));
