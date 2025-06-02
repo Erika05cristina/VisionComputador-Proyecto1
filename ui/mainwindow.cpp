@@ -24,33 +24,56 @@ MainWindow::MainWindow(QWidget *parent)
     QPushButton* videoButton = new QPushButton("Generar Video", this);
     QPushButton* guardarButton = new QPushButton("Guardar Resultados", this); 
 
+    QLabel* textoOriginal = new QLabel("Slice original");
+    QLabel* textoMascara = new QLabel("Máscara original");
+    QLabel* textoProcesada = new QLabel("Máscara procesada");
+    QLabel* textoResaltada = new QLabel("Área resaltada");
+
     slider = new QSlider(Qt::Horizontal);
     slider->setEnabled(false);
 
     originalLabel = new QLabel("Slice actual");
     maskLabel = new QLabel("Máscara");
-    resaltadaLabel = new QLabel("Bordes resaltados sobre imagen");
     sliceInfoLabel = new QLabel("Slice actual: - / -", this);
+    resaltadaLabel = new QLabel("Bordes resaltados sobre imagen");
+    procesadaLabel = new QLabel("Máscara procesada");
+
+    textoOriginal->setAlignment(Qt::AlignCenter);
+    textoMascara->setAlignment(Qt::AlignCenter);
+    textoProcesada->setAlignment(Qt::AlignCenter);
+    textoResaltada->setAlignment(Qt::AlignCenter);
+
     
     originalLabel->setFixedSize(320, 320);
     maskLabel->setFixedSize(320, 320);
     resaltadaLabel->setFixedSize(320, 320);
-    
+    procesadaLabel->setFixedSize(320, 320);
+
     originalLabel->setAlignment(Qt::AlignCenter);
     maskLabel->setAlignment(Qt::AlignCenter);
     resaltadaLabel->setAlignment(Qt::AlignCenter);
     sliceInfoLabel->setAlignment(Qt::AlignCenter);
+    procesadaLabel->setAlignment(Qt::AlignCenter);
 
     QHBoxLayout* imageLayout = new QHBoxLayout();
     imageLayout->addWidget(originalLabel);
     imageLayout->addWidget(maskLabel);
+    imageLayout->addWidget(procesadaLabel);  // ← nuevo
     imageLayout->addWidget(resaltadaLabel);
+
+    QHBoxLayout* textLayout = new QHBoxLayout();
+    textLayout->addWidget(textoOriginal);
+    textLayout->addWidget(textoMascara);
+    textLayout->addWidget(textoProcesada);
+    textLayout->addWidget(textoResaltada);
+
 
     mainLayout->addWidget(cargarButton);
     mainLayout->addWidget(videoButton);
     mainLayout->addWidget(guardarButton);
     mainLayout->addWidget(slider);
     mainLayout->addLayout(imageLayout);
+    mainLayout->addLayout(textLayout);
     mainLayout->addWidget(sliceInfoLabel);
 
     setCentralWidget(centralWidget);
@@ -147,40 +170,29 @@ void MainWindow::mostrarSlice(int indice) {
     if (indice >= 0 && indice < slices.size()) {
         cv::Mat original = slices[indice];
         cv::Mat mask = maskSlices[indice];
+
+        // Mostrar originales
         mostrarEnLabel(original, originalLabel);
         mostrarEnLabel(mask, maskLabel);
 
-        cv::Mat resaltada;
-        cv::cvtColor(original, resaltada, cv::COLOR_GRAY2BGR);
+        // Procesar la máscara y mostrar
+        cv::Mat binarizada, morfologica;
+        cv::threshold(mask, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+        cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
+        cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
+        mostrarEnLabel(morfologica, procesadaLabel);
 
-        std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-        cv::Mat filledMask = cv::Mat::zeros(mask.size(), CV_8UC1);
-        cv::drawContours(filledMask, contours, -1, 255, -1);
-
-        cv::Mat borderMask = cv::Mat::zeros(mask.size(), CV_8UC1);
-        cv::drawContours(borderMask, contours, -1, 255, 2);
-
-        for (int y = 0; y < resaltada.rows; ++y) {
-            for (int x = 0; x < resaltada.cols; ++x) {
-                if (filledMask.at<uchar>(y, x) || borderMask.at<uchar>(y, x)) {
-                    cv::Vec3b& pixel = resaltada.at<cv::Vec3b>(y, x);
-                    cv::Vec3f original(pixel[0], pixel[1], pixel[2]);
-                    cv::Vec3f redOverlay(0, 0, 255);
-                    cv::Vec3f blended = 0.6f * original + 0.4f * redOverlay;
-                    pixel = cv::Vec3b(blended[0], blended[1], blended[2]);
-                }
-            }
-        }
-
+        // Usar la función resaltarArea
+        cv::Mat resaltada = resaltarArea(original);
         mostrarEnLabel(resaltada, resaltadaLabel);
-        
+
+        // Actualizar texto del índice
         sliceInfoLabel->setText(QString("Slice actual: %1 / %2")
-                            .arg(indice)
-                            .arg(slices.size() - 1));
+                                .arg(indice)
+                                .arg(slices.size() - 1));
     }
 }
+
 
 void MainWindow::generarVideo() {
     if (currentFile.empty() || slices.empty()) {

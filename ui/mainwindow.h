@@ -22,6 +22,8 @@ private:
     QLabel* resaltadaLabel;
     QSlider* slider;
     QLabel* sliceInfoLabel;
+    QLabel* procesadaLabel;
+
 
 
     std::vector<cv::Mat> slices;

@@ -112,21 +112,28 @@ cv::Mat resaltarArea(const cv::Mat& slice) {
                                bbox.y + bbox.height < slice.rows - 20;
 
         if (areaValida && alejadoDeBordes) {
-            cv::Mat mask = cv::Mat::zeros(slice.size(), CV_8UC1);
-            cv::drawContours(mask, std::vector<std::vector<cv::Point>>{contour}, -1, 255, -1);
 
-            for (int y = 0; y < resultado.rows; ++y) {
-                for (int x = 0; x < resultado.cols; ++x) {
-                    if (mask.at<uchar>(y, x)) {
-                        cv::Vec3b& pixel = resultado.at<cv::Vec3b>(y, x);
-                        cv::Vec3b rojo = {0, 0, 255};
-                        pixel = 0.6 * pixel + 0.4 * rojo;
-                    }
-                }
+    cv::Mat mask = cv::Mat::zeros(slice.size(), CV_8UC1);
+    cv::drawContours(mask, std::vector<std::vector<cv::Point>>{contour}, -1, 255, -1);  // ← contorno relleno real
+
+    // Mezcla de rojo bajito solo dentro del contorno
+    for (int y = 0; y < resultado.rows; ++y) {
+        for (int x = 0; x < resultado.cols; ++x) {
+            if (mask.at<uchar>(y, x)) {
+                cv::Vec3b& pixel = resultado.at<cv::Vec3b>(y, x);
+                pixel = cv::Vec3b(
+                    static_cast<uchar>(0.6 * pixel[0] + 0.4 * 0),
+                    static_cast<uchar>(0.6 * pixel[1] + 0.4 * 0),
+                    static_cast<uchar>(0.6 * pixel[2] + 0.4 * 255)
+                );
             }
-
-            cv::drawContours(resultado, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(0, 0, 255), 2);
         }
+    }
+
+    // Dibuja el borde real del contorno
+    cv::drawContours(resultado, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(0, 0, 255), 2);
+}
+
     }
 
     return resultado;
