@@ -21,6 +21,8 @@ private:
     QLabel* maskLabel;           // <- NUEVO: para mostrar la máscara de segmentación
     QLabel* resaltadaLabel;
     QSlider* slider;
+    QLabel* sliceInfoLabel;
+
 
     std::vector<cv::Mat> slices;
     std::vector<cv::Mat> maskSlices; // <- NUEVO: para guardar los slices de la máscara
@@ -28,4 +30,6 @@ private:
     std::string currentFile;
 
     void mostrarEnLabel(const cv::Mat& imagen, QLabel* label);
+    void guardarResultados();  
+
 };

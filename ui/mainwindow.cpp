@@ -22,20 +22,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     QPushButton* cargarButton = new QPushButton("Cargar imagen y máscara", this);
     QPushButton* videoButton = new QPushButton("Generar Video", this);
+    QPushButton* guardarButton = new QPushButton("Guardar Resultados", this); 
+
     slider = new QSlider(Qt::Horizontal);
     slider->setEnabled(false);
 
     originalLabel = new QLabel("Slice actual");
     maskLabel = new QLabel("Máscara");
     resaltadaLabel = new QLabel("Bordes resaltados sobre imagen");
-
+    sliceInfoLabel = new QLabel("Slice actual: - / -", this);
+    
     originalLabel->setFixedSize(320, 320);
     maskLabel->setFixedSize(320, 320);
     resaltadaLabel->setFixedSize(320, 320);
-
+    
     originalLabel->setAlignment(Qt::AlignCenter);
     maskLabel->setAlignment(Qt::AlignCenter);
     resaltadaLabel->setAlignment(Qt::AlignCenter);
+    sliceInfoLabel->setAlignment(Qt::AlignCenter);
 
     QHBoxLayout* imageLayout = new QHBoxLayout();
     imageLayout->addWidget(originalLabel);
@@ -44,13 +48,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainLayout->addWidget(cargarButton);
     mainLayout->addWidget(videoButton);
+    mainLayout->addWidget(guardarButton);
     mainLayout->addWidget(slider);
     mainLayout->addLayout(imageLayout);
+    mainLayout->addWidget(sliceInfoLabel);
 
     setCentralWidget(centralWidget);
 
     connect(cargarButton, &QPushButton::clicked, this, &MainWindow::cargarImagenYMascara);
     connect(videoButton, &QPushButton::clicked, this, &MainWindow::generarVideo);
+    connect(guardarButton, &QPushButton::clicked, this, &MainWindow::guardarResultados);
     connect(slider, &QSlider::valueChanged, this, &MainWindow::mostrarSlice);
 }
 
@@ -168,6 +175,10 @@ void MainWindow::mostrarSlice(int indice) {
         }
 
         mostrarEnLabel(resaltada, resaltadaLabel);
+        
+        sliceInfoLabel->setText(QString("Slice actual: %1 / %2")
+                            .arg(indice)
+                            .arg(slices.size() - 1));
     }
 }
 
@@ -203,4 +214,54 @@ void MainWindow::mostrarEnLabel(const cv::Mat& imagen, QLabel* label) {
 
     QImage qimg(imagenRGB.data, imagenRGB.cols, imagenRGB.rows, imagenRGB.step, QImage::Format_RGB888);
     label->setPixmap(QPixmap::fromImage(qimg).scaled(256, 256, Qt::KeepAspectRatio));
+}
+
+void MainWindow::guardarResultados() {
+
+    asegurarDirectorios();
+
+    int indice = slider->value();
+
+    if (indice < 0 || indice >= slices.size()) {
+        std::cerr << "[ERROR] Índice inválido: " << indice << std::endl;
+        QMessageBox::warning(this, "Error", "Índice inválido.");
+        return;
+    }
+
+    cv::Mat original = slices[indice];
+    cv::Mat mask = maskSlices[indice];
+
+
+    if (original.empty()) std::cerr << "[ERROR] Slice original vacío\n";
+    if (mask.empty()) std::cerr << "[ERROR] Máscara vacía\n";
+
+
+    // Guardar slice original procesado y máscara en /slices
+    mostrarYGuardar(original, indice, "original");  // guarda en /output/slices/
+    mostrarYGuardar(mask, indice, "mask");          // guarda en /output/slices/
+
+    // Generar imagen resaltada
+    cv::Mat resaltada;
+    cv::cvtColor(original, resaltada, cv::COLOR_GRAY2BGR);
+
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  
+    cv::Mat filledMask = cv::Mat::zeros(mask.size(), CV_8UC1);
+    cv::drawContours(filledMask, contours, -1, 255, -1);
+
+    for (int y = 0; y < resaltada.rows; ++y) {
+        for (int x = 0; x < resaltada.cols; ++x) {
+            if (filledMask.at<uchar>(y, x)) {
+                cv::Vec3b& pixel = resaltada.at<cv::Vec3b>(y, x);
+                pixel = 0.6 * pixel + 0.4 * cv::Vec3b(0, 0, 255);
+            }
+        }
+    }
+
+    mostrarYGuardar(resaltada, indice, "resaltada");
+
+    guardarEstadisticas(original, indice);
+
+    QMessageBox::information(this, "Éxito", "Slice y estadísticas guardadas correctamente.");
 }

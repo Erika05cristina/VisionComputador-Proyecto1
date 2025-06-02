@@ -71,7 +71,7 @@ cv::Mat cargarSlice(const std::string& rutaArchivo, int indice) {
 
 void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo) {
     std::string carpeta;
-    if (tipo == "original" || tipo == "equalized") {
+    if (tipo == "original" || tipo == "equalized" || tipo == "mask") {
         carpeta = "../output/slices/";
     } else if (tipo == "resaltada") {
         carpeta = "../output/processed/";
