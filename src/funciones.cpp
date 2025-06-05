@@ -144,68 +144,98 @@ cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat&
     return resultado;
 }
 
-std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice) {
+std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice, const cv::Mat& mascaraProcesada) {
     std::map<std::string, cv::Mat> resultados;
     cv::Mat temp;
 
+    // Crear contorno rojo a partir de la máscara procesada
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(mascaraProcesada, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    cv::Mat contorno = cv::Mat::zeros(slice.size(), CV_8UC3);
+    cv::drawContours(contorno, contours, -1, cv::Scalar(0, 0, 255), 2);
+
     // 1. Thresholding (Otsu)
     cv::threshold(slice, temp, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-    cv::Mat threshold = temp.clone();
-    resultados["Thresholding"] = threshold;
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
+    resultados["Thresholding"] = temp.clone();
 
     // 2. Contrast Stretching
     double minVal, maxVal;
     cv::minMaxLoc(slice, &minVal, &maxVal);
     slice.convertTo(temp, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Stretching"] = temp.clone();
 
     // 3. Binarización por umbral de color
     cv::inRange(slice, 100, 200, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Binarizacion"] = temp.clone();
 
     // 4. NOT
     cv::bitwise_not(slice, temp);
-    cv::Mat notImage = temp.clone();
-    resultados["NOT"] = notImage;
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
+    resultados["NOT"] = temp.clone();
 
-    // 5. Lógica: AND, OR, XOR entre threshold y NOT
+    // 5. Lógica: AND, OR, XOR
+    cv::Mat threshold;
+    cv::threshold(slice, threshold, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    cv::Mat notImage;
+    cv::bitwise_not(slice, notImage);
+
     cv::bitwise_and(threshold, notImage, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["AND"] = temp.clone();
 
     cv::bitwise_or(threshold, notImage, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["OR"] = temp.clone();
 
     cv::bitwise_xor(threshold, notImage, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["XOR"] = temp.clone();
 
     // 6. Canny
     cv::Canny(slice, temp, 100, 200);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Canny"] = temp.clone();
 
     // 7. Suavizado
     cv::GaussianBlur(slice, temp, cv::Size(5, 5), 1.5);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Suavizado"] = temp.clone();
 
-    // 8. CLAHE (ecualización adaptativa)
+    // 8. CLAHE
     cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
     clahe->setClipLimit(2.0);
     clahe->apply(slice, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["CLAHE"] = temp.clone();
 
     // 9. Laplacian
     cv::Laplacian(slice, temp, CV_16S, 3);
     cv::convertScaleAbs(temp, temp);
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Laplacian"] = temp.clone();
 
-    // 10. Top Hat (elemento estructurante rectangular)
-    cv::Mat tophat;
-    cv::morphologyEx(slice, tophat, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15)));
-    resultados["TopHat"] = tophat.clone();
-
+    // 10. Top Hat
+    cv::morphologyEx(slice, temp, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15)));
+    cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
+    cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
+    resultados["TopHat"] = temp.clone();
 
     return resultados;
 }
-
 
 void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) {
     std::vector<uchar> valoresSegmentados;

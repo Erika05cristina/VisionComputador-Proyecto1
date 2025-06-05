@@ -12,7 +12,8 @@ cv::Mat cargarSlice(const std::string& rutaArchivo, int indice);
 void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo);
 cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat& mascaraProcesadaOut);
 void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice);
-void generarVideoSlices(const std::string& rutaArchivo, int inicio, int fin);
-std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice);
+void generarVideoSlices(const std::vector<cv::Mat>& slices, const std::vector<cv::Mat>& masks, int inicio, int fin);
+std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice, const cv::Mat& mascaraProcesada);
+
 
 #endif 

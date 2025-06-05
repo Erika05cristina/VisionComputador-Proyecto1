@@ -95,12 +95,6 @@ MainWindow::MainWindow(QWidget *parent)
     labelCLAHE = new QLabel("CLAHE", this);
     labelLaplacian = new QLabel("Laplacian", this);
     labelTopHat = new QLabel("Top Hat", this);
-// y no olvides .setFixedSize y .setAlignment como los otros
-
-
-  
-
-
 
     labelThreshold->setFixedSize(256, 256);
     labelStretching->setFixedSize(256, 256);
@@ -282,7 +276,8 @@ void MainWindow::mostrarSlice(int indice) {
                                 .arg(indice)
                                 .arg(slices.size() - 1));
         
-        auto tecnicas = aplicarTecnicas(original);
+        auto tecnicas = aplicarTecnicas(original, morfologica);
+
         mostrarEnLabel(tecnicas["Thresholding"], labelThreshold);
         mostrarEnLabel(tecnicas["Stretching"], labelStretching);
         mostrarEnLabel(tecnicas["Canny"], labelCanny);
@@ -302,24 +297,64 @@ void MainWindow::mostrarSlice(int indice) {
 }
 
 
-void MainWindow::generarVideo() {
-    if (currentFile.empty() || slices.empty()) {
-        QMessageBox::warning(this, "Advertencia", "Primero debes cargar una imagen válida.");
+void generarVideoSlices(const std::vector<cv::Mat>& slices, const std::vector<cv::Mat>& masks, int inicio, int fin) {
+    asegurarDirectorios();
+
+    if (slices.empty() || masks.empty() || inicio > fin || inicio < 0 || fin >= slices.size()) {
+        std::cerr << "[ERROR] Parámetros inválidos para generarVideoSlices.\n";
         return;
     }
 
-    bool ok1, ok2;
-    int inicio = QInputDialog::getInt(this, "Índice inicial", "Desde:", 0, 0, slices.size() - 1, 1, &ok1);
-    if (!ok1) return;
+    cv::Size frameSize = slices[inicio].size();
+    std::string videoPath = "../output/video/video_con_mascara.avi";
+    cv::VideoWriter writer(videoPath, cv::VideoWriter::fourcc('M','J','P','G'), 5, frameSize, true);
 
-    int fin = QInputDialog::getInt(this, "Índice final", "Hasta:", slices.size() - 1, 0, slices.size() - 1, 1, &ok2);
-    if (!ok2 || fin < inicio) {
-        QMessageBox::warning(this, "Error", "Índices inválidos.");
+    if (!writer.isOpened()) {
+        std::cerr << "[ERROR] No se pudo abrir el archivo de video.\n";
         return;
     }
 
-    generarVideoSlices(currentFile, inicio, fin);
-    QMessageBox::information(this, "Éxito", "Video generado exitosamente.");
+    for (int i = inicio; i <= fin; ++i) {
+        cv::Mat original = slices[i];
+        cv::Mat mask = masks[i];
+
+        // Procesar la máscara
+        cv::Mat binarizada, morfologica;
+        cv::threshold(mask, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+        cv::morphologyEx(binarizada, morfologica, cv::MORPH_OPEN, cv::Mat(), cv::Point(-1, -1), 2);
+        cv::morphologyEx(morfologica, morfologica, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
+
+        // Crear imagen resaltada (como en resaltarArea)
+        cv::Mat resaltada;
+        cv::cvtColor(original, resaltada, cv::COLOR_GRAY2BGR);
+
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+        for (const auto& contour : contours) {
+            cv::Mat mask = cv::Mat::zeros(resaltada.size(), CV_8UC1);
+            cv::drawContours(mask, std::vector<std::vector<cv::Point>>{contour}, -1, 255, -1);
+
+            for (int y = 0; y < resaltada.rows; ++y) {
+                for (int x = 0; x < resaltada.cols; ++x) {
+                    if (mask.at<uchar>(y, x)) {
+                        cv::Vec3b& pixel = resaltada.at<cv::Vec3b>(y, x);
+                        pixel = cv::Vec3b(
+                            static_cast<uchar>(0.6 * pixel[0]),
+                            static_cast<uchar>(0.6 * pixel[1]),
+                            static_cast<uchar>(0.6 * pixel[2] + 0.4 * 255)
+                        );
+                    }
+                }
+            }
+
+            cv::drawContours(resaltada, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(0, 0, 255), 2);
+        }
+
+        writer.write(resaltada);
+    }
+
+    writer.release();
 }
 
 void MainWindow::mostrarEnLabel(const cv::Mat& imagen, QLabel* label) {
@@ -334,6 +369,26 @@ void MainWindow::mostrarEnLabel(const cv::Mat& imagen, QLabel* label) {
 
     QImage qimg(imagenRGB.data, imagenRGB.cols, imagenRGB.rows, imagenRGB.step, QImage::Format_RGB888);
     label->setPixmap(QPixmap::fromImage(qimg).scaled(256, 256, Qt::KeepAspectRatio));
+}
+
+void MainWindow::generarVideo() {
+    if (currentFile.empty() || slices.empty() || maskSlices.empty()) {
+        QMessageBox::warning(this, "Advertencia", "Primero debes cargar una imagen válida.");
+        return;
+    }
+
+    bool ok1, ok2;
+    int inicio = QInputDialog::getInt(this, "Índice inicial", "Desde:", 0, 0, slices.size() - 1, 1, &ok1);
+    if (!ok1) return;
+
+    int fin = QInputDialog::getInt(this, "Índice final", "Hasta:", slices.size() - 1, 0, slices.size() - 1, 1, &ok2);
+    if (!ok2 || fin < inicio) {
+        QMessageBox::warning(this, "Error", "Índices inválidos.");
+        return;
+    }
+
+    generarVideoSlices(slices, maskSlices, inicio, fin);
+    QMessageBox::information(this, "Éxito", "Video generado exitosamente.");
 }
 
 void MainWindow::guardarResultados() {
