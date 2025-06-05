@@ -58,7 +58,7 @@ MainWindow::MainWindow(QWidget *parent)
     QHBoxLayout* imageLayout = new QHBoxLayout();
     imageLayout->addWidget(originalLabel);
     imageLayout->addWidget(maskLabel);
-    imageLayout->addWidget(procesadaLabel);  // ← nuevo
+    imageLayout->addWidget(procesadaLabel);
     imageLayout->addWidget(resaltadaLabel);
 
     QHBoxLayout* textLayout = new QHBoxLayout();
@@ -248,8 +248,8 @@ void MainWindow::guardarResultados() {
 
 
     // Guardar slice original procesado y máscara en /slices
-    mostrarYGuardar(original, indice, "original");  // guarda en /output/slices/
-    mostrarYGuardar(mask, indice, "mask");          // guarda en /output/slices/
+    mostrarYGuardar(original, indice, "original");
+    mostrarYGuardar(mask, indice, "mask");
 
     // Generar imagen resaltada
     cv::Mat resaltada;
@@ -272,7 +272,7 @@ void MainWindow::guardarResultados() {
 
     mostrarYGuardar(resaltada, indice, "resaltada");
 
-    guardarEstadisticas(original, indice);
+    guardarEstadisticas(original, mask, indice);
 
     QMessageBox::information(this, "Éxito", "Slice y estadísticas guardadas correctamente.");
 }

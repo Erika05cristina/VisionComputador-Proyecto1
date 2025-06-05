@@ -4,6 +4,11 @@
 #include <opencv2/videoio.hpp>
 #include <filesystem>
 #include <fstream>
+#include <numeric>
+#include <algorithm>
+#include <cmath>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 #include <itkImage.h>
 #include <itkImageFileReader.h>
 #include <itkExtractImageFilter.h>
@@ -16,6 +21,7 @@ void asegurarDirectorios() {
     fs::create_directories("../output/processed");
     fs::create_directories("../output/stats");
     fs::create_directories("../output/video");
+    fs::create_directories("../output/plots");
 }
 
 cv::Mat cargarSlice(const std::string& rutaArchivo, int indice) {
@@ -142,18 +148,77 @@ cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat&
     return resultado;
 }
 
-void guardarEstadisticas(const cv::Mat& slice, int indice) {
-    cv::Scalar media, stddev;
-    cv::meanStdDev(slice, media, stddev);
-    double minVal, maxVal;
-    cv::minMaxLoc(slice, &minVal, &maxVal);
+void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) {
+    std::vector<uchar> valoresSegmentados;
 
+    for (int y = 0; y < slice.rows; ++y) {
+        for (int x = 0; x < slice.cols; ++x) {
+            if (mask.at<uchar>(y, x) > 0) {
+                valoresSegmentados.push_back(slice.at<uchar>(y, x));
+            }
+        }
+    }
+
+    if (valoresSegmentados.empty()) return;
+
+    std::sort(valoresSegmentados.begin(), valoresSegmentados.end());
+
+    double suma = std::accumulate(valoresSegmentados.begin(), valoresSegmentados.end(), 0.0);
+    double media = suma / valoresSegmentados.size();
+    double minVal = valoresSegmentados.front();
+    double maxVal = valoresSegmentados.back();
+
+    double varianza = 0;
+    for (uchar v : valoresSegmentados)
+        varianza += (v - media) * (v - media);
+    varianza /= valoresSegmentados.size();
+    double desviacion = std::sqrt(varianza);
+
+    // Cálculo de Q1, Q3, IQR
+    size_t n = valoresSegmentados.size();
+    auto get_percentile = [&](double p) -> double {
+        double idx = p * (n - 1);
+        size_t i = static_cast<size_t>(idx);
+        double frac = idx - i;
+        return valoresSegmentados[i] * (1 - frac) + valoresSegmentados[std::min(i + 1, n - 1)] * frac;
+    };
+
+    double Q1 = get_percentile(0.25);
+    double Q3 = get_percentile(0.75);
+    double IQR = Q3 - Q1;
+
+    // Outliers
+    double lowerFence = Q1 - 1.5 * IQR;
+    double upperFence = Q3 + 1.5 * IQR;
+    int outliers = std::count_if(valoresSegmentados.begin(), valoresSegmentados.end(), [&](double v) {
+        return v < lowerFence || v > upperFence;
+    });
+
+    // Guardar estadísticas en .txt
     std::ofstream out("../output/stats/slice_" + std::to_string(indice) + "_stats.txt");
-    out << "Media: " << media[0] << "\n";
-    out << "Desviación estándar: " << stddev[0] << "\n";
-    out << "Mínimo: " << minVal << "\n";
-    out << "Máximo: " << maxVal << "\n";
+    out << "Media (zona): " << media << "\n";
+    out << "Desviación estándar (zona): " << desviacion << "\n";
+    out << "Mínimo (zona): " << minVal << "\n";
+    out << "Máximo (zona): " << maxVal << "\n";
+    out << "Área segmentada (pixeles): " << valoresSegmentados.size() << "\n";
+    out << "Q1 (25%): " << Q1 << "\n";
+    out << "Q3 (75%): " << Q3 << "\n";
+    out << "IQR: " << IQR << "\n";
+    out << "Outliers detectados: " << outliers << "\n";
     out.close();
+
+    // Guardar CSV con los valores segmentados
+    std::string csvPath = "../output/plots/slice_" + std::to_string(indice) + "_valores.csv";
+    std::ofstream csv(csvPath);
+    for (uchar v : valoresSegmentados)
+        csv << static_cast<int>(v) << "\n";
+    csv.close();
+
+    // Ejecutar script Python para generar el boxplot
+    std::string plotPath = "../output/plots/slice_" + std::to_string(indice) + "_boxplot.png";
+    std::string scriptPath = "/home/visionups/Desktop/VisionComputador-Proyecto1/scripts/boxplot_generator.py";
+    std::string command = "python3 \"" + scriptPath + "\" \"" + csvPath + "\" \"" + plotPath + "\"";
+    system(command.c_str());
 }
 
 void generarVideoSlices(const std::string& rutaArchivo, int inicio, int fin) {
