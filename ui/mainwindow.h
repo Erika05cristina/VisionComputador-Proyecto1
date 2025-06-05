@@ -18,16 +18,18 @@ private slots:
 
 private:
     QLabel* originalLabel;
-    QLabel* maskLabel;           // <- NUEVO: para mostrar la máscara de segmentación
+    QLabel* maskLabel;          
     QLabel* resaltadaLabel;
     QSlider* slider;
     QLabel* sliceInfoLabel;
     QLabel* procesadaLabel;
-
-
+    QLabel *labelThreshold, *labelStretching, *labelCanny;
+    QLabel *labelLogic, *labelSuavizado, *labelBinarizacion;
+    QLabel *labelAND, *labelOR, *labelXOR, *labelCLAHE;
+    QLabel *labelLaplacian, *labelTopHat;
 
     std::vector<cv::Mat> slices;
-    std::vector<cv::Mat> maskSlices; // <- NUEVO: para guardar los slices de la máscara
+    std::vector<cv::Mat> maskSlices; 
 
     std::string currentFile;
 

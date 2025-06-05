@@ -5,6 +5,7 @@
 #include <QInputDialog>
 #include <QPushButton>
 #include <QSlider>
+#include <QTabWidget>
 #include "../src/funciones.hpp"
 #include <itkImage.h>
 #include <itkImageFileReader.h>
@@ -15,14 +16,19 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
 
-    resize(1000, 600);  // Aumentar el tamaño inicial de la ventana
+    resize(1000, 600);
 
-    QWidget* centralWidget = new QWidget(this);
-    QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
+    // Crear tabs
+    QTabWidget* tabs = new QTabWidget(this);
+    QWidget* tabPrincipal = new QWidget(this);
+    QWidget* tabTecnicas = new QWidget(this);
+
+    // --------- TAB PRINCIPAL ---------
+    QVBoxLayout* layoutPrincipal = new QVBoxLayout(tabPrincipal);
 
     QPushButton* cargarButton = new QPushButton("Cargar imagen y máscara", this);
     QPushButton* videoButton = new QPushButton("Generar Video", this);
-    QPushButton* guardarButton = new QPushButton("Guardar Resultados", this); 
+    QPushButton* guardarButton = new QPushButton("Guardar Resultados", this);
 
     QLabel* textoOriginal = new QLabel("Slice original");
     QLabel* textoMascara = new QLabel("Máscara original");
@@ -34,8 +40,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     originalLabel = new QLabel("Slice actual");
     maskLabel = new QLabel("Máscara");
-    sliceInfoLabel = new QLabel("Slice actual: - / -", this);
     resaltadaLabel = new QLabel("Bordes resaltados sobre imagen");
+    sliceInfoLabel = new QLabel("Slice actual: - / -", this);
     procesadaLabel = new QLabel("Máscara procesada");
 
     textoOriginal->setAlignment(Qt::AlignCenter);
@@ -43,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
     textoProcesada->setAlignment(Qt::AlignCenter);
     textoResaltada->setAlignment(Qt::AlignCenter);
 
-    
     originalLabel->setFixedSize(320, 320);
     maskLabel->setFixedSize(320, 320);
     resaltadaLabel->setFixedSize(320, 320);
@@ -67,17 +72,104 @@ MainWindow::MainWindow(QWidget *parent)
     textLayout->addWidget(textoProcesada);
     textLayout->addWidget(textoResaltada);
 
+    layoutPrincipal->addWidget(cargarButton);
+    layoutPrincipal->addWidget(videoButton);
+    layoutPrincipal->addWidget(guardarButton);
+    layoutPrincipal->addWidget(slider);
+    layoutPrincipal->addLayout(imageLayout);
+    layoutPrincipal->addLayout(textLayout);
+    layoutPrincipal->addWidget(sliceInfoLabel);
 
-    mainLayout->addWidget(cargarButton);
-    mainLayout->addWidget(videoButton);
-    mainLayout->addWidget(guardarButton);
-    mainLayout->addWidget(slider);
-    mainLayout->addLayout(imageLayout);
-    mainLayout->addLayout(textLayout);
-    mainLayout->addWidget(sliceInfoLabel);
+    // --------- TAB TÉCNICAS ---------
+    QVBoxLayout* layoutTecnicas = new QVBoxLayout(tabTecnicas);
 
-    setCentralWidget(centralWidget);
+    labelThreshold = new QLabel("Thresholding", this);
+    labelStretching = new QLabel("Stretching", this);
+    labelCanny = new QLabel("Canny", this);
+    labelLogic = new QLabel("Lógica NOT", this);
+    labelSuavizado = new QLabel("Suavizado", this);
+    labelBinarizacion = new QLabel("Binarización por Color", this);
+    labelAND = new QLabel("AND", this);
+    labelOR = new QLabel("OR", this);
+    labelXOR = new QLabel("XOR", this);
+    labelCLAHE = new QLabel("CLAHE", this);
+    labelLaplacian = new QLabel("Laplacian", this);
+    labelTopHat = new QLabel("Top Hat", this);
+// y no olvides .setFixedSize y .setAlignment como los otros
 
+
+  
+
+
+
+    labelThreshold->setFixedSize(256, 256);
+    labelStretching->setFixedSize(256, 256);
+    labelCanny->setFixedSize(256, 256);
+    labelLogic->setFixedSize(256, 256);
+    labelSuavizado->setFixedSize(256, 256);
+    labelBinarizacion->setFixedSize(256, 256);
+
+    labelThreshold->setAlignment(Qt::AlignCenter);
+    labelStretching->setAlignment(Qt::AlignCenter);
+    labelCanny->setAlignment(Qt::AlignCenter);
+    labelLogic->setAlignment(Qt::AlignCenter);
+    labelSuavizado->setAlignment(Qt::AlignCenter);
+    labelBinarizacion->setAlignment(Qt::AlignCenter);
+
+    QGridLayout* gridTecnicas = new QGridLayout();
+    // FILA 1
+    gridTecnicas->addWidget(new QLabel("Thresholding"), 0, 0);
+    gridTecnicas->addWidget(new QLabel("Stretching"), 0, 1);
+    gridTecnicas->addWidget(new QLabel("Canny"), 0, 2);
+    gridTecnicas->addWidget(new QLabel("NOT"), 0, 3);
+
+    gridTecnicas->addWidget(labelThreshold, 1, 0);
+    gridTecnicas->addWidget(labelStretching, 1, 1);
+    gridTecnicas->addWidget(labelCanny, 1, 2);
+    gridTecnicas->addWidget(labelLogic, 1, 3);
+
+    // FILA 2
+    gridTecnicas->addWidget(new QLabel("Suavizado"), 2, 0);
+    gridTecnicas->addWidget(new QLabel("Binarización por Color"), 2, 1);
+    gridTecnicas->addWidget(new QLabel("AND"), 2, 2);
+    gridTecnicas->addWidget(new QLabel("OR"), 2, 3);
+
+    gridTecnicas->addWidget(labelSuavizado, 3, 0);
+    gridTecnicas->addWidget(labelBinarizacion, 3, 1);
+    gridTecnicas->addWidget(labelAND, 3, 2);
+    gridTecnicas->addWidget(labelOR, 3, 3);
+
+    // FILA 3
+    gridTecnicas->addWidget(new QLabel("XOR"), 4, 0);
+    gridTecnicas->addWidget(new QLabel("CLAHE"), 4, 1);
+    gridTecnicas->addWidget(new QLabel("Laplacian"), 4, 2);
+    gridTecnicas->addWidget(new QLabel("Top Hat"), 4, 3);
+
+    gridTecnicas->addWidget(labelXOR, 5, 0);
+    gridTecnicas->addWidget(labelCLAHE, 5, 1);
+    gridTecnicas->addWidget(labelLaplacian, 5, 2);
+    gridTecnicas->addWidget(labelTopHat, 5, 3);
+
+
+
+    layoutTecnicas->addLayout(gridTecnicas);
+
+    for (QLabel* lbl : {labelThreshold, labelStretching, labelCanny, labelLogic, labelSuavizado, labelBinarizacion}) {
+    lbl->setFixedSize(256, 256);
+    lbl->setAlignment(Qt::AlignCenter);
+    }
+    for (QLabel* lbl : {labelAND, labelOR, labelXOR, labelCLAHE, labelLaplacian, labelTopHat}) {
+        lbl->setFixedSize(256, 256);
+        lbl->setAlignment(Qt::AlignCenter);
+    }
+
+    // Agregar tabs al widget principal
+    tabs->addTab(tabPrincipal, "Principal");
+    tabs->addTab(tabTecnicas, "Técnicas");
+
+    setCentralWidget(tabs);
+
+    // Conexiones
     connect(cargarButton, &QPushButton::clicked, this, &MainWindow::cargarImagenYMascara);
     connect(videoButton, &QPushButton::clicked, this, &MainWindow::generarVideo);
     connect(guardarButton, &QPushButton::clicked, this, &MainWindow::guardarResultados);
@@ -189,6 +281,23 @@ void MainWindow::mostrarSlice(int indice) {
         sliceInfoLabel->setText(QString("Slice actual: %1 / %2")
                                 .arg(indice)
                                 .arg(slices.size() - 1));
+        
+        auto tecnicas = aplicarTecnicas(original);
+        mostrarEnLabel(tecnicas["Thresholding"], labelThreshold);
+        mostrarEnLabel(tecnicas["Stretching"], labelStretching);
+        mostrarEnLabel(tecnicas["Canny"], labelCanny);
+        mostrarEnLabel(tecnicas["Suavizado"], labelSuavizado);
+        mostrarEnLabel(tecnicas["Binarizacion"], labelBinarizacion);
+        mostrarEnLabel(tecnicas["AND"], labelAND);
+        mostrarEnLabel(tecnicas["NOT"], labelLogic);
+        mostrarEnLabel(tecnicas["OR"], labelOR);
+        mostrarEnLabel(tecnicas["XOR"], labelXOR);
+        mostrarEnLabel(tecnicas["CLAHE"], labelCLAHE);
+        mostrarEnLabel(tecnicas["Laplacian"], labelLaplacian);
+        mostrarEnLabel(tecnicas["TopHat"], labelTopHat);
+
+
+        
     }
 }
 

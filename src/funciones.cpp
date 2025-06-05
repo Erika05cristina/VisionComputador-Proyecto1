@@ -91,10 +91,6 @@ void mostrarYGuardar(const cv::Mat& imagen, int indice, const std::string& tipo)
 
 cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat& mascaraProcesadaOut) {
 
-    cv::Mat ecualizada, suavizada;
-    cv::equalizeHist(slice, ecualizada);
-    cv::GaussianBlur(ecualizada, suavizada, cv::Size(5, 5), 1.5);
-
     // Procesar la máscara: binarización + morfología
     cv::Mat binarizada, morfologica;
     cv::threshold(maskOriginal, binarizada, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
@@ -147,6 +143,69 @@ cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat&
 
     return resultado;
 }
+
+std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice) {
+    std::map<std::string, cv::Mat> resultados;
+    cv::Mat temp;
+
+    // 1. Thresholding (Otsu)
+    cv::threshold(slice, temp, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+    cv::Mat threshold = temp.clone();
+    resultados["Thresholding"] = threshold;
+
+    // 2. Contrast Stretching
+    double minVal, maxVal;
+    cv::minMaxLoc(slice, &minVal, &maxVal);
+    slice.convertTo(temp, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+    resultados["Stretching"] = temp.clone();
+
+    // 3. Binarización por umbral de color
+    cv::inRange(slice, 100, 200, temp);
+    resultados["Binarizacion"] = temp.clone();
+
+    // 4. NOT
+    cv::bitwise_not(slice, temp);
+    cv::Mat notImage = temp.clone();
+    resultados["NOT"] = notImage;
+
+    // 5. Lógica: AND, OR, XOR entre threshold y NOT
+    cv::bitwise_and(threshold, notImage, temp);
+    resultados["AND"] = temp.clone();
+
+    cv::bitwise_or(threshold, notImage, temp);
+    resultados["OR"] = temp.clone();
+
+    cv::bitwise_xor(threshold, notImage, temp);
+    resultados["XOR"] = temp.clone();
+
+    // 6. Canny
+    cv::Canny(slice, temp, 100, 200);
+    resultados["Canny"] = temp.clone();
+
+    // 7. Suavizado
+    cv::GaussianBlur(slice, temp, cv::Size(5, 5), 1.5);
+    resultados["Suavizado"] = temp.clone();
+
+    // 8. CLAHE (ecualización adaptativa)
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    clahe->setClipLimit(2.0);
+    clahe->apply(slice, temp);
+    resultados["CLAHE"] = temp.clone();
+
+    // 9. Laplacian
+    cv::Laplacian(slice, temp, CV_16S, 3);
+    cv::convertScaleAbs(temp, temp);
+    resultados["Laplacian"] = temp.clone();
+
+    // 10. Top Hat (elemento estructurante rectangular)
+    cv::Mat tophat;
+    cv::morphologyEx(slice, tophat, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15)));
+    resultados["TopHat"] = tophat.clone();
+
+
+    return resultados;
+}
+
 
 void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) {
     std::vector<uchar> valoresSegmentados;
