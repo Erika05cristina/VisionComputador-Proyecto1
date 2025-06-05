@@ -106,7 +106,7 @@ cv::Mat resaltarArea(const cv::Mat& slice, const cv::Mat& maskOriginal, cv::Mat&
 
     // Convertir la imagen a color
     cv::Mat resultado;
-    cv::cvtColor(suavizada, resultado, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(slice, resultado, cv::COLOR_GRAY2BGR);
 
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(morfologica, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
@@ -216,7 +216,7 @@ void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) 
 
     // Ejecutar script Python para generar el boxplot
     std::string plotPath = "../output/plots/slice_" + std::to_string(indice) + "_boxplot.png";
-    std::string scriptPath = "/home/visionups/Desktop/VisionComputador-Proyecto1/scripts/boxplot_generator.py";
+    std::string scriptPath = "../scripts/boxplot_generator.py";
     std::string command = "python3 \"" + scriptPath + "\" \"" + csvPath + "\" \"" + plotPath + "\"";
     system(command.c_str());
 }

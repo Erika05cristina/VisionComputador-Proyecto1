@@ -10,3 +10,4 @@ build.sh
 *.hdr
 *.img
 *.img.gz
+*.csv
