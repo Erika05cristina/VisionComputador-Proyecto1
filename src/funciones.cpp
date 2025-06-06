@@ -242,11 +242,15 @@ std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice, const cv::M
     cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
     resultados["Laplacian"] = temp.clone();
 
-    // 10. Top Hat
-    cv::morphologyEx(slice, temp, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15)));
+    // 10. Gabor
+    cv::Mat gaborKernel = cv::getGaborKernel(cv::Size(21, 21), 5.0, CV_PI / 4, 10.0, 0.5, 0, CV_32F);
+    cv::filter2D(slice, temp, CV_32F, gaborKernel);
+    cv::normalize(temp, temp, 0, 255, cv::NORM_MINMAX);
+    temp.convertTo(temp, CV_8UC1);
     cv::cvtColor(temp, temp, cv::COLOR_GRAY2BGR);
     cv::addWeighted(temp, 1.0, contorno, 1.0, 0, temp);
-    resultados["TopHat"] = temp.clone();
+    resultados["Gabor"] = temp.clone();
+
 
     return resultados;
 }

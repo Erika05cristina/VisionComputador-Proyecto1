@@ -94,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
     labelXOR = new QLabel("XOR", this);
     labelCLAHE = new QLabel("CLAHE", this);
     labelLaplacian = new QLabel("Laplacian", this);
-    labelTopHat = new QLabel("Top Hat", this);
+    labelGabor = new QLabel(" Gabor", this);
 
     labelThreshold->setFixedSize(256, 256);
     labelStretching->setFixedSize(256, 256);
@@ -137,12 +137,12 @@ MainWindow::MainWindow(QWidget *parent)
     gridTecnicas->addWidget(new QLabel("XOR"), 4, 0);
     gridTecnicas->addWidget(new QLabel("CLAHE"), 4, 1);
     gridTecnicas->addWidget(new QLabel("Laplacian"), 4, 2);
-    gridTecnicas->addWidget(new QLabel("Top Hat"), 4, 3);
+    gridTecnicas->addWidget(new QLabel(" Gabor"), 4, 3);
 
     gridTecnicas->addWidget(labelXOR, 5, 0);
     gridTecnicas->addWidget(labelCLAHE, 5, 1);
     gridTecnicas->addWidget(labelLaplacian, 5, 2);
-    gridTecnicas->addWidget(labelTopHat, 5, 3);
+    gridTecnicas->addWidget(labelGabor, 5, 3);
 
 
 
@@ -152,7 +152,7 @@ MainWindow::MainWindow(QWidget *parent)
     lbl->setFixedSize(256, 256);
     lbl->setAlignment(Qt::AlignCenter);
     }
-    for (QLabel* lbl : {labelAND, labelOR, labelXOR, labelCLAHE, labelLaplacian, labelTopHat}) {
+    for (QLabel* lbl : {labelAND, labelOR, labelXOR, labelCLAHE, labelLaplacian, labelGabor}) {
         lbl->setFixedSize(256, 256);
         lbl->setAlignment(Qt::AlignCenter);
     }
@@ -289,7 +289,7 @@ void MainWindow::mostrarSlice(int indice) {
         mostrarEnLabel(tecnicas["XOR"], labelXOR);
         mostrarEnLabel(tecnicas["CLAHE"], labelCLAHE);
         mostrarEnLabel(tecnicas["Laplacian"], labelLaplacian);
-        mostrarEnLabel(tecnicas["TopHat"], labelTopHat);
+        mostrarEnLabel(tecnicas["Gabor"], labelGabor);
 
 
         

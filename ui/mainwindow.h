@@ -26,7 +26,7 @@ private:
     QLabel *labelThreshold, *labelStretching, *labelCanny;
     QLabel *labelLogic, *labelSuavizado, *labelBinarizacion;
     QLabel *labelAND, *labelOR, *labelXOR, *labelCLAHE;
-    QLabel *labelLaplacian, *labelTopHat;
+    QLabel *labelLaplacian, *labelGabor;
 
     std::vector<cv::Mat> slices;
     std::vector<cv::Mat> maskSlices; 
