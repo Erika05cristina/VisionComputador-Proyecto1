@@ -24,6 +24,20 @@ void asegurarDirectorios() {
     fs::create_directories("../output/plots");
 }
 
+size_t obtenerUsoMemoriaKB() {
+    std::ifstream status("/proc/self/status");
+    std::string linea;
+    while (std::getline(status, linea)) {
+        if (linea.rfind("VmRSS:", 0) == 0) {
+            std::istringstream iss(linea);
+            std::string key, value, unit;
+            iss >> key >> value >> unit;
+            return std::stoul(value);
+        }
+    }
+    return 0;
+}
+
 cv::Mat cargarSlice(const std::string& rutaArchivo, int indice) {
     using ImageType = itk::Image<short, 3>;
     using ReaderType = itk::ImageFileReader<ImageType>;
@@ -238,8 +252,8 @@ std::map<std::string, cv::Mat> aplicarTecnicas(const cv::Mat& slice, const cv::M
 }
 
 void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) {
-    std::vector<uchar> valoresSegmentados;
 
+    std::vector<uchar> valoresSegmentados;
     for (int y = 0; y < slice.rows; ++y) {
         for (int x = 0; x < slice.cols; ++x) {
             if (mask.at<uchar>(y, x) > 0) {
@@ -263,7 +277,6 @@ void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) 
     varianza /= valoresSegmentados.size();
     double desviacion = std::sqrt(varianza);
 
-    // Cálculo de Q1, Q3, IQR
     size_t n = valoresSegmentados.size();
     auto get_percentile = [&](double p) -> double {
         double idx = p * (n - 1);
@@ -276,14 +289,12 @@ void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) 
     double Q3 = get_percentile(0.75);
     double IQR = Q3 - Q1;
 
-    // Outliers
     double lowerFence = Q1 - 1.5 * IQR;
     double upperFence = Q3 + 1.5 * IQR;
     int outliers = std::count_if(valoresSegmentados.begin(), valoresSegmentados.end(), [&](double v) {
         return v < lowerFence || v > upperFence;
     });
 
-    // Guardar estadísticas en .txt
     std::ofstream out("../output/stats/slice_" + std::to_string(indice) + "_stats.txt");
     out << "Media (zona): " << media << "\n";
     out << "Desviación estándar (zona): " << desviacion << "\n";
@@ -296,55 +307,24 @@ void guardarEstadisticas(const cv::Mat& slice, const cv::Mat& mask, int indice) 
     out << "Outliers detectados: " << outliers << "\n";
     out.close();
 
-    // Guardar CSV con los valores segmentados
     std::string csvPath = "../output/plots/slice_" + std::to_string(indice) + "_valores.csv";
     std::ofstream csv(csvPath);
     for (uchar v : valoresSegmentados)
         csv << static_cast<int>(v) << "\n";
     csv.close();
 
-    // Ejecutar script Python para generar el boxplot
     std::string plotPath = "../output/plots/slice_" + std::to_string(indice) + "_boxplot.png";
     std::string scriptPath = "../scripts/boxplot_generator.py";
     std::string command = "python3 \"" + scriptPath + "\" \"" + csvPath + "\" \"" + plotPath + "\"";
     system(command.c_str());
-}
 
-void generarVideoSlices(const std::string& rutaArchivo, int inicio, int fin) {
-    asegurarDirectorios();
+ // Obtener uso actual de memoria
+    size_t memoria = obtenerUsoMemoriaKB();
 
-    cv::Mat primerSliceValido;
-    for (int i = inicio; i <= fin; ++i) {
-        primerSliceValido = cargarSlice(rutaArchivo, i);
-        if (!primerSliceValido.empty()) {
-            break;
-        }
-    }
+    // Mostrar en consola
+    std::cout << "[INFO] Slice " << indice << " - Uso de memoria (KB): " << memoria << "\n";
 
-    if (primerSliceValido.empty()) {
-        std::cerr << "[ERROR] No se encontraron slices válidos para generar el video.\n";
-        return;
-    }
-
-    std::string videoPath = "../output/video/video_slices.avi";
-    cv::Size frameSize = primerSliceValido.size();
-    cv::VideoWriter writer(videoPath, cv::VideoWriter::fourcc('M','J','P','G'), 5, frameSize, false);
-
-    if (!writer.isOpened()) {
-        std::cerr << "[ERROR] No se pudo abrir el archivo de video para escritura.\n";
-        return;
-    }
-
-    for (int i = inicio; i <= fin; ++i) {
-        cv::Mat slice = cargarSlice(rutaArchivo, i);
-        if (!slice.empty()) {
-            if (slice.size() != frameSize) {
-                std::cerr << "[ADVERTENCIA] Slice " << i << " tiene un tamaño diferente y será ignorado.\n";
-                continue;
-            }
-            writer.write(slice);
-        }
-    }
-
-    writer.release();
+    // Guardar log en archivo
+    std::ofstream memlog("../output/stats/slice_" + std::to_string(indice) + "_memoria.txt");
+    memlog << "Uso de memoria (KB): " << memoria << "\n";
 }
